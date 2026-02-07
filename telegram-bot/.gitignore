@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+temp/
+telegram-api-data/
+telegram-bot-api-data/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.tmp
+*.temp
+video-downloads/
+compressed-videos/

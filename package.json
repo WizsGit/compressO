@@ -16,7 +16,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
-    "pnpm:devPreinstall": "fnm use",
+
     "postinstall": "husky install",
     "lint-staged": "lint-staged",
     "tsc:check": "tsc --noEmit --skipLibCheck"
