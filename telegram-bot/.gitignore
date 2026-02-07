@@ -13,3 +13,9 @@ telegram-bot-api-data/
 *.temp
 video-downloads/
 compressed-videos/
+
+**/telegram-bot-api-data/
+**/telegram-api-data/
+**/*.binlog
+**/*.mp4
+**/*.mov
