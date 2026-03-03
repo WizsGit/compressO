@@ -12,16 +12,6 @@ model User {
   fullName         String?
   nickname         String?
   registrationDate DateTime @default(now())
-  
-  // Track daily usage or total usage? Requirement says "3 times can send video".
-  // Assuming total usage for now or daily reset? 
-  // "3 раза можно отправлять видео, на 4 раз должно писать Достигнут лимит"
-  // Usually this means daily or total. Given the simple description, let's track total but maybe add a date for "last used" to implement daily reset if needed later.
-  // For now, I'll implement it as a simple counter that we might need to reset or just check.
-  // The requirement "3 times can send video" sounds like a hard limit or daily. Hard limit for a service is rare.
-  // Let's assume daily limit for usability, or maybe just a counter.
-  // "У пользователя должно быть ограничение на количество использования сервиса, 3 раза можно отправлять видео"
-  // Let's add a `usageCount` field.
-  
   usageCount       Int      @default(0)
+  lastUsageDate    DateTime @default(now())
 }

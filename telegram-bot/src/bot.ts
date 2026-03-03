@@ -31,7 +31,8 @@ const prisma = new PrismaClient({ adapter });
 const queue = new VideoQueue();
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
-const USAGE_LIMIT = 3;
+const DAILY_LIMIT = 2; // 2 compressions per day
+const VIP_TELEGRAM_ID = BigInt("494667637"); // Unlimited user
 
 // Middleware to track user and check limits
 bot.use(async (ctx, next) => {
@@ -78,7 +79,7 @@ bot.use(async (ctx, next) => {
 });
 
 bot.command('start', (ctx) => {
-    ctx.reply('Привет! Отправь мне видео, и я сожму его для тебя. (Лимит: 500 Мб, 3 видео).');
+    ctx.reply('Привет! Отправь мне видео, и я сожму его для тебя. (Лимит: 500 Мб, 2 видео в день).');
 });
 
 bot.on(message('video'), async (ctx) => {
@@ -97,10 +98,30 @@ bot.on(message('document'), async (ctx) => {
 async function handleVideo(ctx: Context) {
     const user = (ctx as any).dbUser;
     
-    // Check usage limit
-    if (user.usageCount >= USAGE_LIMIT) {
-        await ctx.reply('Достигнут лимит в 3 видеофайла.');
-        return;
+    // Check if user is VIP (unlimited)
+    if (user.telegramId !== VIP_TELEGRAM_ID) {
+        // Check if it's a new day - reset counter if last usage was not today
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const lastUsage = user.lastUsageDate ? new Date(user.lastUsageDate) : null;
+        
+        if (lastUsage) {
+            const lastUsageDay = new Date(lastUsage.getFullYear(), lastUsage.getMonth(), lastUsage.getDate());
+            if (lastUsageDay < today) {
+                // It's a new day, reset the counter
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { usageCount: 0 }
+                });
+                user.usageCount = 0;
+            }
+        }
+        
+        // Check daily limit
+        if (user.usageCount >= DAILY_LIMIT) {
+            await ctx.reply('Достигнут суточный лимит в 2 видеофайла.');
+            return;
+        }
     }
 
     const msg = (ctx.message as any);
@@ -205,13 +226,14 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
         
         await ctx.replyWithVideo({ source: compressedPath }, { caption: '' });
 
-        // Increment usage count
+        // Increment usage count and update last usage date
         await prisma.user.update({
             where: { telegramId },
             data: {
                 usageCount: {
                     increment: 1
-                }
+                },
+                lastUsageDate: new Date()
             }
         });
 
