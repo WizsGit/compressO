@@ -17,8 +17,9 @@ console.log(`Initializing bot with API Root: ${apiRoot}`);
 
 const bot = new Telegraf(process.env.BOT_TOKEN as string, {
     telegram: {
-        apiRoot: apiRoot
-    }
+        apiRoot: apiRoot,
+    },
+    handlerTimeout: 900_000, // 15 minutes handler timeout for large video processing
 });
 // Pass datasourceUrl explicitely as required by new Prisma version
 // Configure Prisma with PostgreSQL adapter
@@ -33,6 +34,32 @@ const queue = new VideoQueue();
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 const DAILY_LIMIT = 2; // 2 compressions per day
 const VIP_TELEGRAM_ID = BigInt("494667637"); // Unlimited user
+
+// Retry helper for network operations
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    retries = 3,
+    delayMs = 5000,
+    label = 'operation'
+): Promise<T> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await fn();
+        } catch (err: any) {
+            const isTimeout = err?.type === 'request-timeout' || err?.message?.includes('network timeout');
+            const isLastAttempt = attempt === retries;
+
+            if (isLastAttempt || !isTimeout) {
+                throw err;
+            }
+
+            console.warn(`[Retry ${attempt}/${retries}] ${label} timed out. Retrying in ${delayMs / 1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            delayMs = Math.min(delayMs * 2, 60_000); // exponential backoff, max 60s
+        }
+    }
+    throw new Error(`${label} failed after ${retries} retries`);
+}
 
 // Middleware to track user and check limits
 bot.use(async (ctx, next) => {
@@ -142,7 +169,7 @@ async function handleVideo(ctx: Context) {
             await processVideo(ctx, video.file_id, user.telegramId);
         } catch (error) {
             console.error('Error processing video:', error);
-            await ctx.reply('Произошла ошибка при обработке видео.');
+            await ctx.reply('Произошла ошибка при обработке видео.').catch(() => {});
         }
     });
 }
@@ -151,7 +178,11 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
     const tempDir = path.resolve(__dirname, '../temp');
     await fs.ensureDir(tempDir);
 
-    const fileLink = await ctx.telegram.getFileLink(fileId);
+    // Retry getFileLink in case of network timeout
+    const fileLink = await withRetry(
+        () => ctx.telegram.getFileLink(fileId),
+        3, 5000, 'getFileLink'
+    );
     const url = fileLink.href;
     const ext = path.extname(fileLink.pathname) || '.mp4';
     const originalPath = path.join(tempDir, `${fileId}_original${ext}`);
@@ -220,11 +251,12 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
         await compressVideo(originalPath, compressedPath);
 
         await ctx.reply('Видео сжато. Отправляю...');
-        
-        // Get initial file stats to maybe compare size? Optional.
-        // const stats = await fs.stat(compressedPath);
-        
-        await ctx.replyWithVideo({ source: compressedPath }, { caption: '' });
+
+        // Retry sendVideo in case of network timeout (large file upload can be slow)
+        await withRetry(
+            () => ctx.replyWithVideo({ source: compressedPath }, { caption: '' }),
+            3, 10000, 'sendVideo'
+        );
 
         // Increment usage count and update last usage date
         await prisma.user.update({
@@ -233,8 +265,8 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
                 usageCount: {
                     increment: 1
                 },
-                lastUsageDate: new Date()
-            }
+                lastUsageDate: new Date(),
+            } as any,
         });
 
         // Clean up old files from telegram-bot-api-data directory after successful processing
@@ -270,7 +302,7 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
 
     } catch (error) {
         console.error('Compression pipeline failed:', error);
-        await ctx.reply('Не удалось сжать видео.');
+        await ctx.reply('Не удалось сжать видео.').catch(() => {});
         throw error;
     } finally {
         // Cleanup
