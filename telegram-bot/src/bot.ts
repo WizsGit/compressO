@@ -9,6 +9,7 @@ import { Context, Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { cleanupFiles, compressVideo, downloadVideo } from './compress';
 import { VideoQueue } from './queue';
+import { getDownloadUrl, registerFileForDownload, startServer } from './server';
 
 dotenv.config();
 
@@ -250,12 +251,15 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
         await ctx.reply('Сжимаю видео... Это может занять некоторое время.');
         await compressVideo(originalPath, compressedPath);
 
-        await ctx.reply('Видео сжато. Отправляю...');
+        // Register compressed file for download (8 hours TTL)
+        const TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
+        const downloadId = registerFileForDownload(compressedPath, `compressed_${fileId}.mp4`, TTL_MS);
+        const downloadUrl = getDownloadUrl(downloadId);
 
-        // Retry sendVideo in case of network timeout (large file upload can be slow)
-        await withRetry(
-            () => ctx.replyWithVideo({ source: compressedPath }, { caption: '' }),
-            3, 10000, 'sendVideo'
+        // Send download link to user
+        await ctx.reply(
+            `✅ Видео сжато!\n\n📥 <a href="${downloadUrl}">Нажмите здесь, чтобы скачать сжатое видео</a>\n\n⏳ Сжатое видео будет доступно для скачивания в течение 8 часов, после чего будет удалено.`,
+            { parse_mode: 'HTML' }
         );
 
         // Increment usage count and update last usage date
@@ -303,10 +307,12 @@ async function processVideo(ctx: Context, fileId: string, telegramId: bigint) {
     } catch (error) {
         console.error('Compression pipeline failed:', error);
         await ctx.reply('Не удалось сжать видео.').catch(() => {});
+        // On error, clean up the compressed file too
+        await cleanupFiles([compressedPath]);
         throw error;
     } finally {
-        // Cleanup
-        await cleanupFiles([originalPath, compressedPath]);
+        // Only clean up the original file; compressed file is managed by the download server
+        await cleanupFiles([originalPath]);
     }
 }
 
@@ -353,6 +359,9 @@ async function cleanupOldTelegramFiles(): Promise<void> {
         console.error('Error during telegram files cleanup:', error);
     }
 }
+
+// Start the download server
+startServer();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
