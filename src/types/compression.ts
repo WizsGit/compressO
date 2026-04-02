@@ -10,6 +10,9 @@ export const compressionPresets = {
 export type CompressionResult = {
   fileName: string
   filePath: string
+  mimeType: string
+  sizeInBytes: number
+  extension: string
 }
 
 export enum CustomEvents {

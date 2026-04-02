@@ -29,6 +29,7 @@ export type Video = {
   isFileSelected: boolean
   pathRaw?: string | null
   path?: string | null
+  file?: File | null
   fileName?: string | null
   mimeType?: string | null
   sizeInBytes?: number | null
@@ -54,6 +55,7 @@ export type Video = {
     isSaving?: boolean
     savedPath?: string
   } | null
+  queuePosition?: number | null
   compressionProgress?: number
   config: VideoConfig
   dimensions?: { width: number; height: number }

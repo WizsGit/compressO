@@ -1,58 +1,31 @@
-import { SelectItem } from '@heroui/select'
-import { core } from '@tauri-apps/api'
 import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
-import Divider from '@/components/Divider'
 import Icon from '@/components/Icon'
 import Layout from '@/components/Layout'
-import Select from '@/components/Select'
 import Spinner from '@/components/Spinner'
-import Switch from '@/components/Switch'
 import { toast } from '@/components/Toast'
-import { compressVideo } from '@/tauri/commands/ffmpeg'
-import { getFileMetadata } from '@/tauri/commands/fs'
-import { extensions } from '@/types/compression'
 import { zoomInTransition } from '@/utils/animation'
-import { formatBytes } from '@/utils/fs'
 import { cn } from '@/utils/tailwind'
-import CancelCompression from './CancelCompression'
 import Compressing from './Compressing'
-import CompressionPreset from './CompressionPreset'
-import CompressionQuality from './CompressionQuality'
 import FileName from './FileName'
 import PreviewVideo from './PreviewVideo'
-import SaveVideo from './SaveVideo'
-import Success from './Success'
 import styles from './styles.module.css'
-import TransformVideo from './TransformVideo'
-import VideoDimensions from './VideoDimensions'
-import VideoFPS from './VideoFPS'
-import VideoThumbnail from './VideoThumbnail'
 import { videoProxy } from '../-state'
-
-const videoExtensions = Object.keys(extensions?.video)
 
 function VideoConfig() {
   const {
     state: {
       isCompressing,
-      config,
       id: videoId,
       isThumbnailGenerating,
       fileName,
       isCompressionSuccessful,
       size: videoSize,
-      videDurationRaw,
-      extension: videoExtension,
-      dimensions,
-      fps,
     },
   } = useSnapshot(videoProxy)
-
-  const { convertToExtension, presetName, shouldMuteVideo } = config
 
   const handleCompression = async () => {
     const videoSnapshot = snapshot(videoProxy)
@@ -60,265 +33,119 @@ function VideoConfig() {
     try {
       videoProxy.takeSnapshot('beforeCompressionStarted')
       videoProxy.state.isCompressing = true
+      videoProxy.state.compressionProgress = 0
 
-      if (
-        videoProxy.state.config.shouldTransformVideo &&
-        videoProxy.state.config.transformVideoConfig?.previewUrl
-      ) {
-        videoProxy.state.thumbnailPath =
-          videoProxy.state.config.transformVideoConfig.previewUrl
-      }
+      const jobId = Math.random().toString(36).substring(2, 9)
+      videoProxy.state.id = jobId
 
-      const result = await compressVideo({
-        videoPath: videoSnapshot.state.pathRaw as string,
-        convertToExtension:
-          videoSnapshot.state?.config?.convertToExtension ?? 'mp4',
-        presetName: !videoSnapshot?.state?.config?.shouldDisableCompression
-          ? presetName
-          : null,
-        videoId,
-        shouldMuteVideo,
-        ...(videoSnapshot?.state?.config?.shouldEnableQuality
-          ? { quality: videoSnapshot.state?.config?.quality as number }
-          : {}),
-        ...(videoSnapshot.state.config.shouldEnableCustomDimensions
-          ? { dimensions: videoSnapshot.state.config.customDimensions }
-          : {}),
-        ...(videoSnapshot.state.config.shouldEnableCustomFPS
-          ? { fps: videoSnapshot.state.config.customFPS?.toString?.() }
-          : {}),
-        ...(videoSnapshot.state.config.shouldTransformVideo
-          ? {
-              transformsHistory:
-                videoSnapshot.state.config.transformVideoConfig
-                  ?.transformsHistory ?? ([] as any),
+      const formData = new FormData()
+      formData.append('video', videoProxy.state.file as File)
+      formData.append('jobId', jobId)
+
+      const eventSource = new EventSource(`/api/progress/${jobId}`)
+      eventSource.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.error) {
+            eventSource.close()
+            toast.error('Compression failed.')
+            videoProxy.timeTravel('beforeCompressionStarted')
+          } else if (data.queued) {
+            videoProxy.state.queuePosition = data.position
+          } else if (data.done) {
+            videoProxy.state.compressionProgress = 100
+            videoProxy.state.queuePosition = null
+            eventSource.close()
+
+            toast.success('Успешно! Началась загрузка...')
+
+            // Safest way to trigger a download without user gesture blockers
+            window.location.assign(data.url)
+
+            videoProxy.state.isCompressing = false
+
+            // Auto reset back to picker after triggering download!
+            setTimeout(() => {
+              videoProxy.resetProxy()
+            }, 1000)
+          } else {
+            if (data.percent !== undefined) {
+              videoProxy.state.compressionProgress = data.percent
+              videoProxy.state.queuePosition = null
             }
-          : {}),
-      })
-      if (!result) {
-        throw new Error()
+          }
+        } catch (_err) {}
       }
-      const compressedVideoMetadata = await getFileMetadata(result?.filePath)
-      if (!compressedVideoMetadata) {
-        throw new Error()
-      }
-      videoProxy.state.isCompressing = false
-      videoProxy.state.isCompressionSuccessful = true
 
-      const videoSnapshot2 = snapshot(videoProxy.state)
-      videoProxy.state.compressedVideo = {
-        fileName: compressedVideoMetadata?.fileName,
-        fileNameToDisplay: `${videoSnapshot2?.fileName?.slice(
-          0,
-          -((videoSnapshot2?.extension?.length ?? 0) + 1),
-        )}.${compressedVideoMetadata?.extension}`,
-        pathRaw: compressedVideoMetadata?.path,
-        path: core.convertFileSrc(compressedVideoMetadata?.path ?? ''),
-        mimeType: compressedVideoMetadata?.mimeType,
-        sizeInBytes: compressedVideoMetadata?.size,
-        size: formatBytes(compressedVideoMetadata?.size ?? 0),
-        extension: compressedVideoMetadata?.extension,
+      eventSource.onerror = (err) => {
+        eventSource.close()
       }
-    } catch (error) {
-      if (error !== 'CANCELLED') {
-        toast.error('Something went wrong during compression.')
-        videoProxy.timeTravel('beforeCompressionStarted')
+
+      const response = await fetch('/api/compress', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(await response.text())
       }
+      // Process continues via SSE onmessage
+    } catch (_error) {
+      toast.error('Произошла ошибка при сжатии.')
+      videoProxy.timeTravel('beforeCompressionStarted')
     }
   }
 
   return (
     <Layout
-      childrenProps={{
-        className: cn(isThumbnailGenerating ? 'm-auto' : 'h-full'),
+      containerProps={{
+        className: 'relative h-screen flex justify-center items-center',
       }}
+      childrenProps={{ className: 'm-auto w-full' }}
       hideLogo
     >
       {!isThumbnailGenerating ? (
-        <div className={cn(['h-full p-6', styles.videoConfigContainer])}>
+        <div
+          className={cn([
+            'w-full max-w-lg mx-auto my-auto',
+            styles.videoConfigContainer,
+          ])}
+        >
           <AnimatePresence>
-            <section className="px-4 py-6 hlg:py-10 flex flex-col justify-center items-center rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
+            <section className="px-6 py-8 flex flex-col justify-center items-center rounded-3xl border-2 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm relative overflow-hidden">
               {fileName && !isCompressing ? <FileName /> : null}
+
               {isCompressing ? (
-                <Compressing />
-              ) : isCompressionSuccessful ? (
-                <>
-                  <VideoThumbnail />
-                  <Success />
-                </>
+                <div className="py-10">
+                  <Compressing />
+                </div>
               ) : (
                 <motion.div
-                  className="flex flex-col justify-center items-center"
+                  className="flex flex-col justify-center items-center w-full"
                   {...zoomInTransition}
                 >
                   <PreviewVideo />
-                  <section className={cn(['my-4', styles.videoMetadata])}>
-                    <>
-                      <div>
-                        <p className="italic text-gray-600 dark:text-gray-400">
-                          Size
-                        </p>
-                        <span className="block font-black">{videoSize}</span>
-                      </div>
-                      <Divider orientation="vertical" className="h-10" />
-                    </>
-                    <>
-                      <div>
-                        <p className="italic text-gray-600 dark:text-gray-400">
-                          Extension
-                        </p>
-                        <span className="block font-black">
-                          {videoExtension ?? '-'}
-                        </span>
-                      </div>
-                      <Divider orientation="vertical" className="h-10" />
-                    </>
-
-                    <>
-                      <div>
-                        <p className="italic text-gray-600 dark:text-gray-400">
-                          Duration
-                        </p>
-                        <span className="block font-black">
-                          {videDurationRaw ?? '-'}
-                        </span>
-                      </div>
-                    </>
-                    <>
-                      {dimensions ? (
-                        <>
-                          <Divider orientation="vertical" className="h-10" />{' '}
-                          <div>
-                            <p className="italic text-gray-600 dark:text-gray-400">
-                              Dimensions
-                            </p>
-                            <span className="block font-black">
-                              {dimensions.width ?? '-'} x{' '}
-                              {dimensions.height ?? '-'}
-                            </span>
-                          </div>
-                        </>
-                      ) : null}
-                    </>
-                    <>
-                      {fps ? (
-                        <>
-                          <Divider orientation="vertical" className="h-10" />{' '}
-                          <div>
-                            <p className="italic text-gray-600 dark:text-gray-400">
-                              FPS
-                            </p>
-                            <span className="block font-black">
-                              {fps ?? '-'}
-                            </span>
-                          </div>
-                        </>
-                      ) : null}
-                    </>
-                  </section>
+                  <div className="mt-6 flex flex-col w-full items-center gap-4">
+                    <p className="text-gray-500 font-medium">
+                      Размер видео: {videoSize}
+                    </p>
+                    <Button
+                      as={motion.button}
+                      color="primary"
+                      onPress={handleCompression}
+                      fullWidth
+                      isLoading={isCompressing}
+                      isDisabled={isCompressing}
+                      className="text-white bg-primary font-bold py-5 mt-2 text-lg lg:text-xl rounded-2xl flex justify-center items-center gap-2 hover:opacity-90 shadow-md transition-opacity w-full"
+                    >
+                      {isCompressing ? 'Сжатие...' : 'Сжать видео'}
+                      <Icon name="logo" size={24} className="text-white" />
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </section>
           </AnimatePresence>
-          <section
-            className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
-            {...zoomInTransition}
-          >
-            <p className="text-xl mb-6 font-bold">Output Settings</p>
-            <>
-              <CompressionPreset />
-              <Divider className="my-3" />
-            </>
-            <>
-              <div className="flex items-center my-2">
-                <Switch
-                  isSelected={shouldMuteVideo}
-                  onValueChange={() => {
-                    videoProxy.state.config.shouldMuteVideo = !shouldMuteVideo
-                  }}
-                  className="flex justify-center items-center"
-                  isDisabled={isCompressing || isCompressionSuccessful}
-                >
-                  <div className="flex justify-center items-center">
-                    <span className="text-gray-600 dark:text-gray-400 block mr-2 text-sm">
-                      Mute Audio
-                    </span>
-                  </div>
-                </Switch>
-              </div>
-              <Divider className="my-3" />
-            </>
-
-            <>
-              <CompressionQuality />
-              <Divider className="my-3" />
-            </>
-            {dimensions ? (
-              <>
-                <VideoDimensions />
-                <Divider className="my-3" />
-                <TransformVideo />
-                <Divider className="my-3" />
-              </>
-            ) : null}
-            {fps ? (
-              <>
-                <VideoFPS />
-                <Divider className="my-3" />
-              </>
-            ) : null}
-            <>
-              <div className="mt-8">
-                <Select
-                  fullWidth
-                  label="Extension:"
-                  className="block flex-shrink-0 rounded-2xl"
-                  size="sm"
-                  value={convertToExtension}
-                  selectedKeys={[convertToExtension]}
-                  onChange={(evt) => {
-                    const value = evt?.target
-                      ?.value as keyof typeof extensions.video
-                    if (value?.length > 0) {
-                      videoProxy.state.config.convertToExtension = value
-                    }
-                  }}
-                  selectionMode="single"
-                  isDisabled={isCompressing || isCompressionSuccessful}
-                  classNames={{
-                    label: '!text-gray-600 dark:!text-gray-400 text-sm',
-                  }}
-                >
-                  {videoExtensions?.map((ext) => (
-                    <SelectItem
-                      key={ext}
-                      value={ext}
-                      className="flex justify-center items-center"
-                    >
-                      {ext}
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-            </>
-            <div className="mt-4">
-              {isCompressing ? (
-                <CancelCompression />
-              ) : isCompressionSuccessful ? (
-                <SaveVideo />
-              ) : (
-                <Button
-                  as={motion.button}
-                  color="primary"
-                  onPress={handleCompression}
-                  fullWidth
-                  className="text-primary"
-                >
-                  Compress <Icon name="logo" size={25} />
-                </Button>
-              )}
-            </div>
-          </section>
         </div>
       ) : (
         <Spinner size="lg" />

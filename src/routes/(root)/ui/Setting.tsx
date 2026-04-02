@@ -12,7 +12,6 @@ import ThemeSwitcher from '@/components/ThemeSwitcher'
 import Title from '@/components/Title'
 import { toast } from '@/components/Toast'
 import Tooltip from '@/components/Tooltip'
-import { deleteCache as invokeDeleteCache } from '@/tauri/commands/fs'
 import About from './About'
 
 type DropdownKey = 'settings' | 'about'
@@ -71,7 +70,7 @@ function AppSetting() {
   const deleteCache = async () => {
     setIsCacheDeleting(true)
     try {
-      await invokeDeleteCache()
+      localStorage.clear()
       toast.success('All caches were cleared.')
       setConfirmClearCache(false)
     } catch (_) {

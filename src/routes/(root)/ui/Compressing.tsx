@@ -14,6 +14,7 @@ function Compressing() {
       thumbnailPath,
       config,
       compressionProgress,
+      queuePosition,
     },
   } = useSnapshot(videoProxy)
   const { convertToExtension, shouldDisableCompression } = config
@@ -48,17 +49,15 @@ function Compressing() {
         <div className="blur-2xl  z-[10] absolute top-0 right-0 bottom-0 left-0 rounded-full" />
       </div>
       <p className="italic text-sm mt-10 text-gray-600 dark:text-gray-400 text-center animate-pulse">
-        {!shouldDisableCompression ? 'Compressing' : 'Converting'}
-        ...
-        {convertToExtension === 'webm' ? (
-          <span className="block">
-            webm conversion takes longer than the other formats.
-          </span>
-        ) : null}
+        {queuePosition
+          ? `Сервер загружен. Ожидание в очереди... Перед вами: ${queuePosition} видео.`
+          : 'Сжатие видео... Пожалуйста, подождите.'}
       </p>
       <p
-        className={`not-italic text-2xl text-center font-bold text-primary my-4 opacity-${
-          compressionProgress && compressionProgress > 0 ? 1 : 0
+        className={`not-italic text-2xl text-center font-bold text-primary my-4 ${
+          !queuePosition && compressionProgress && compressionProgress > 0
+            ? 'opacity-100'
+            : 'opacity-0'
         }`}
       >
         {compressionProgress?.toFixed(2)}%

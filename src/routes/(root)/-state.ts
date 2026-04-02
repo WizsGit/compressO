@@ -17,6 +17,7 @@ const videoInitialState: Video = {
   isFileSelected: false,
   pathRaw: null,
   path: null,
+  file: null,
   fileName: null,
   mimeType: null,
   sizeInBytes: null,
@@ -30,6 +31,7 @@ const videoInitialState: Video = {
   isCompressing: false,
   isCompressionSuccessful: false,
   compressedVideo: null,
+  queuePosition: null,
   compressionProgress: 0,
   config: videoConfigInitialState,
 }

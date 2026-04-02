@@ -6,7 +6,6 @@ import Button from '@/components/Button'
 import Code from '@/components/Code'
 import Icon from '@/components/Icon'
 import Tooltip from '@/components/Tooltip'
-import { deleteFile } from '@/tauri/commands/fs'
 import AlertDialog, { AlertDialogButton } from '@/ui/Dialogs/AlertDialog'
 import { videoProxy } from '../-state'
 
@@ -30,10 +29,6 @@ function FileName() {
     closeModal: UseDisclosureProps['onClose']
   }) => {
     try {
-      await Promise.allSettled([
-        deleteFile(compressedVideo?.pathRaw as string),
-        deleteFile(thumbnailPathRaw as string),
-      ])
       closeModal?.()
       resetProxy()
     } catch {
@@ -83,7 +78,7 @@ function FileName() {
             </Tooltip>
           </Button>
         ) : null}
-        <Tooltip content="Cancel compression" aria-label="Cancel compression">
+        <Tooltip content="Отменить" aria-label="Отменить">
           <Button
             isIconOnly
             size="sm"
@@ -95,17 +90,17 @@ function FileName() {
         </Tooltip>
       </div>
       <AlertDialog
-        title="Video not saved!"
+        title="Видео не сохранено!"
         discloser={alertDiscloser}
-        description="Your compressed video is not yet saved. Are you sure you want to discard it?"
+        description="Ваше сжатое видео еще загружается. Вы уверены, что хотите отменить?"
         renderFooter={({ closeModal }) => (
           <>
-            <AlertDialogButton onPress={closeModal}>Go Back</AlertDialogButton>
+            <AlertDialogButton onPress={closeModal}>Назад</AlertDialogButton>
             <AlertDialogButton
               color="danger"
               onPress={() => handleDiscard({ closeModal })}
             >
-              Yes
+              Да
             </AlertDialogButton>
           </>
         )}

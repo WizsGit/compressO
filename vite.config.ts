@@ -1,6 +1,6 @@
+import { resolve } from 'path'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import svgr from 'vite-plugin-svgr'
 
@@ -23,5 +23,10 @@ export default defineConfig(({ mode }) => ({
   define: {
     __appVersion: JSON.stringify(packageJSON.version),
     __envMode: JSON.stringify(mode),
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
   },
 }))

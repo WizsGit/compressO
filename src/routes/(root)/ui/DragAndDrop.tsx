@@ -1,4 +1,3 @@
-import { event } from '@tauri-apps/api'
 import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -12,7 +11,7 @@ const videoExtensions = Object.keys(extensions?.video)
 
 type DragAndDropProps = {
   disable?: boolean
-  onFile?: (filePath: string) => void
+  onFile?: (file: File) => void
 }
 
 function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
@@ -20,76 +19,47 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
     'idle' | 'dragging' | 'dropped'
   >('idle')
 
-  const dragAndDropListenerIsDroppedRef = React.useRef<boolean>(false)
-  const dragAndDropListenerRef = React.useRef<{
-    drag: event.UnlistenFn | undefined
-    dragCancelled: event.UnlistenFn | undefined
-    drop: event.UnlistenFn | undefined
-  }>({
-    drag: undefined,
-    dragCancelled: undefined,
-    drop: undefined,
-  })
   const dragAndDropContainerRef = React.useRef<HTMLDivElement>(null)
 
-  const cancelDragAndDropEvents = React.useCallback(() => {
-    dragAndDropListenerRef.current?.drag?.()
-    dragAndDropListenerRef.current?.dragCancelled?.()
-    dragAndDropListenerRef.current?.drop?.()
-  }, [])
-
-  React.useEffect(() => {
-    ;(async function iife() {
-      cancelDragAndDropEvents()
-
-      if (!disable) {
-        dragAndDropListenerRef.current.drop = await event.listen<{
-          paths: string[]
-        }>(event.TauriEvent.DRAG_DROP, (evt) => {
-          setDragAndDropState('dropped')
-          if (!dragAndDropListenerIsDroppedRef.current) {
-            dragAndDropListenerIsDroppedRef.current = true
-            setTimeout(() => {
-              dragAndDropListenerIsDroppedRef.current = false
-            }, 1000)
-            toast.dismiss()
-            const paths = evt?.payload?.paths
-            if (paths.length > 0) {
-              const filePath = paths?.[0]
-              const filePathSplitted = filePath?.split('.')
-              if (filePathSplitted.length) {
-                const fileExtension =
-                  filePathSplitted?.[filePathSplitted.length - 1].toLowerCase()
-                if (!videoExtensions?.includes(fileExtension)) {
-                  toast.error('Invalid video file.')
-                } else {
-                  onFile?.(filePath)
-                }
-              }
-            }
-          }
-        })
-        dragAndDropListenerRef.current.drag = await event.listen(
-          event.TauriEvent.DRAG_ENTER,
-          () => {
-            setDragAndDropState('dragging')
-          },
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (disable) return
+    setDragAndDropState('dropped')
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      const fileExtension = file.name.split('.').pop()?.toLowerCase()
+      if (
+        !videoExtensions?.includes(
+          fileExtension as keyof typeof extensions.video,
         )
-        dragAndDropListenerRef.current.dragCancelled = await event.listen(
-          event.TauriEvent.DRAG_LEAVE,
-          () => {
-            setDragAndDropState('idle')
-          },
-        )
+      ) {
+        toast.error('Invalid video file.')
       } else {
-        cancelDragAndDropEvents()
+        onFile?.(file)
       }
-    })()
-
-    return () => {
-      cancelDragAndDropEvents()
     }
-  }, [onFile, disable, cancelDragAndDropEvents])
+    // Reset state after a short delay to allow the drag leave event to fire
+    setTimeout(() => {
+      setDragAndDropState('idle')
+    }, 1000)
+  }
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (disable) return
+    setDragAndDropState('dragging')
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (disable) return
+    setDragAndDropState('idle')
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+  }
 
   return (
     <>
@@ -98,6 +68,10 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
           {dragAndDropState === 'dragging' ? (
             <div
               ref={dragAndDropContainerRef}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
               className="fixed top-0 right-0 bottom-0 left-0 w-screen h-screen bg-zinc-200 dark:bg-zinc-900 flex justify-center items-center flex-col z-[2]"
             >
               <motion.div
