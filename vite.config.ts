@@ -29,4 +29,17 @@ export default defineConfig(({ mode }) => ({
       '/api': 'http://localhost:3000',
     },
   },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          heroui: ['@heroui/react'],
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 }))

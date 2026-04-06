@@ -15,7 +15,6 @@
     "vite:start": "vite",
     "build": "npm run vite:build",
     "start": "node server/index.js",
-    "pnpm:devPreinstall": "fnm use",
     "postinstall": "husky install",
     "lint-staged": "lint-staged",
     "tsc:check": "tsc --noEmit --skipLibCheck"
