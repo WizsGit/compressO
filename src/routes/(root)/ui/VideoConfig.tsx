@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
@@ -17,14 +16,7 @@ import { videoProxy } from '../-state'
 
 function VideoConfig() {
   const {
-    state: {
-      isCompressing,
-      id: videoId,
-      isThumbnailGenerating,
-      fileName,
-      isCompressionSuccessful,
-      size: videoSize,
-    },
+    state: { isCompressing, isThumbnailGenerating, fileName, size: videoSize },
   } = useSnapshot(videoProxy)
 
   const handleCompression = async () => {
@@ -111,41 +103,38 @@ function VideoConfig() {
             styles.videoConfigContainer,
           ])}
         >
-          <AnimatePresence>
-            <section className="px-6 py-8 flex flex-col justify-center items-center rounded-3xl border-2 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm relative overflow-hidden">
-              {fileName && !isCompressing ? <FileName /> : null}
+          <section className="px-6 py-8 flex flex-col justify-center items-center rounded-3xl border-2 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm relative overflow-hidden">
+            {fileName && !isCompressing ? <FileName /> : null}
 
-              {isCompressing ? (
-                <div className="py-10">
-                  <Compressing />
+            {isCompressing ? (
+              <div className="py-10">
+                <Compressing />
+              </div>
+            ) : (
+              <div
+                className="flex flex-col justify-center items-center w-full"
+                {...zoomInTransition}
+              >
+                <PreviewVideo />
+                <div className="mt-6 flex flex-col w-full items-center gap-4">
+                  <p className="text-gray-500 font-medium">
+                    Размер видео: {videoSize}
+                  </p>
+                  <Button
+                    color="primary"
+                    onPress={handleCompression}
+                    fullWidth
+                    isLoading={isCompressing}
+                    isDisabled={isCompressing}
+                    className="text-white bg-primary font-bold py-5 mt-2 text-lg lg:text-xl rounded-2xl flex justify-center items-center gap-2 hover:opacity-90 shadow-md transition-opacity w-full"
+                  >
+                    {isCompressing ? 'Сжатие...' : 'Сжать видео'}
+                    <Icon name="logo" size={24} className="text-white" />
+                  </Button>
                 </div>
-              ) : (
-                <motion.div
-                  className="flex flex-col justify-center items-center w-full"
-                  {...zoomInTransition}
-                >
-                  <PreviewVideo />
-                  <div className="mt-6 flex flex-col w-full items-center gap-4">
-                    <p className="text-gray-500 font-medium">
-                      Размер видео: {videoSize}
-                    </p>
-                    <Button
-                      as={motion.button}
-                      color="primary"
-                      onPress={handleCompression}
-                      fullWidth
-                      isLoading={isCompressing}
-                      isDisabled={isCompressing}
-                      className="text-white bg-primary font-bold py-5 mt-2 text-lg lg:text-xl rounded-2xl flex justify-center items-center gap-2 hover:opacity-90 shadow-md transition-opacity w-full"
-                    >
-                      {isCompressing ? 'Сжатие...' : 'Сжать видео'}
-                      <Icon name="logo" size={24} className="text-white" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </section>
-          </AnimatePresence>
+              </div>
+            )}
+          </section>
         </div>
       ) : (
         <Spinner size="lg" />

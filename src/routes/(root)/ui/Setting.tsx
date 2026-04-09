@@ -1,11 +1,19 @@
-import { DropdownItem } from '@heroui/dropdown'
-import { useDisclosure } from '@heroui/modal'
-import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
+import React, { useState } from 'react'
+
+function useDisclosure() {
+  const [isOpen, setIsOpen] = useState(false)
+  const onOpen = () => setIsOpen(true)
+  const onClose = () => setIsOpen(false)
+  return { isOpen, onOpen, onClose }
+}
 
 import Button from '@/components/Button'
 import Divider from '@/components/Divider'
-import Dropdown, { DropdownMenu, DropdownTrigger } from '@/components/Dropdown'
+import Dropdown, {
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from '@/components/Dropdown'
 import Icon from '@/components/Icon'
 import Modal, { ModalContent } from '@/components/Modal'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
@@ -116,28 +124,10 @@ function AppSetting() {
                 <div>
                   <Icon name="trash" />
                 </div>
-                <AnimatePresence initial={false}>
-                  {confirmClearCache ? (
-                    <motion.p
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{
-                        width: 'auto',
-                        opacity: 1,
-                        transition: {
-                          duration: 0.3,
-                          bounce: 0.2,
-                          type: 'spring',
-                        },
-                      }}
-                      exit={{
-                        width: 0,
-                        opacity: 0,
-                      }}
-                    >
-                      Clear Now
-                    </motion.p>
-                  ) : null}
-                </AnimatePresence>
+
+                {confirmClearCache ? (
+                  <p className="ml-2 font-medium">Clear Now</p>
+                ) : null}
               </Button>
             </div>
           </Tooltip>

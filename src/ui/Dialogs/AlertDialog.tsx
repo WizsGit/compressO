@@ -1,8 +1,6 @@
-import { ButtonProps } from '@heroui/button'
-import { UseDisclosureProps } from '@heroui/modal'
 import React from 'react'
 
-import Button from '@/components/Button'
+import Button, { ButtonProps } from '@/components/Button'
 import Divider from '@/components/Divider'
 import Icon from '@/components/Icon'
 import Modal, {
@@ -11,6 +9,12 @@ import Modal, {
   ModalFooter,
   ModalHeader,
 } from '@/components/Modal'
+
+type UseDisclosureProps = {
+  isOpen: boolean
+  onOpen: () => void
+  onClose: () => void
+}
 
 type renderFooterArgs = { closeModal: UseDisclosureProps['onClose'] }
 

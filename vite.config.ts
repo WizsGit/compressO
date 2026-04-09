@@ -36,7 +36,6 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          heroui: ['@heroui/react'],
           react: ['react', 'react-dom'],
         },
       },

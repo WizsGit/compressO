@@ -1,17 +1,24 @@
-import {
-  Divider as NextUIDivider,
-  type DividerProps as NextUIDividerProps,
-} from '@heroui/divider'
+import React from 'react'
 
 import { cn } from '@/utils/tailwind'
 
-interface DividerProps extends NextUIDividerProps {}
+interface DividerProps extends React.HTMLAttributes<HTMLHRElement> {
+  orientation?: 'horizontal' | 'vertical'
+}
 
-function Divider(props: DividerProps) {
+function Divider({
+  className,
+  orientation = 'horizontal',
+  ...props
+}: DividerProps) {
   return (
-    <NextUIDivider
+    <hr
+      className={cn(
+        'shrink-0 bg-zinc-200 dark:bg-zinc-800 border-none',
+        orientation === 'horizontal' ? 'h-[1px] w-full' : 'h-full w-[1px]',
+        className,
+      )}
       {...props}
-      className={cn(['bg-zinc-200 dark:bg-zinc-800', props?.className ?? ''])}
     />
   )
 }

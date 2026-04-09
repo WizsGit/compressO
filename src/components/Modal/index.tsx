@@ -1,70 +1,92 @@
-import {
-  Modal as NextUIModal,
-  ModalBody as NextUIModalBody,
-  type ModalBodyProps as NextUIModalBodyProps,
-  ModalContent as NextUIModalContent,
-  type ModalContentProps as NextUIModalContentProps,
-  ModalFooter as NextUIModalFooter,
-  type ModalFooterProps as NextUIModalFooterProps,
-  ModalHeader as NextUIModalHeader,
-  type ModalHeaderProps as NextUIModalHeaderProps,
-  type ModalProps as NextUIModalProps,
-} from '@heroui/modal'
+import * as Dialog from '@radix-ui/react-dialog'
 import React from 'react'
 
 import { BackdropBlurContent } from '@/ui/BackdropBlur'
 import { getPlatform } from '@/utils/fs'
 import { cn } from '@/utils/tailwind'
-import { bottomToTop, zoomIn } from './modal.animation'
 
 const { isWindows, isMacOS } = getPlatform()
 
-interface ModalProps extends NextUIModalProps {
+interface ModalProps
+  extends React.ComponentPropsWithoutRef<typeof Dialog.Root> {
+  isOpen?: boolean
+  onClose?: () => void
   motionVariant?: 'zoomIn' | 'bottomToTop'
 }
-function Modal({ motionVariant, ...props }: ModalProps) {
+function Modal({
+  isOpen,
+  onOpenChange,
+  onClose,
+  children,
+  ...props
+}: ModalProps) {
   return (
-    <NextUIModal
-      hideCloseButton
-      motionProps={{
-        variants: { zoomIn, bottomToTop }?.[motionVariant ?? 'zoomIn'],
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        onOpenChange?.(open)
+        if (!open) onClose?.()
       }}
+      {...props}
+    >
+      {children}
+    </Dialog.Root>
+  )
+}
+
+interface ModalHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+export function ModalHeader({ className, ...props }: ModalHeaderProps) {
+  return (
+    <div
+      className={cn('flex flex-col space-y-1.5 p-6', className)}
       {...props}
     />
   )
 }
 
-interface ModalHeaderProps extends NextUIModalHeaderProps {}
-export function ModalHeader(props: ModalHeaderProps) {
-  return <NextUIModalHeader {...props} />
+interface ModalBodyProps extends React.HTMLAttributes<HTMLDivElement> {}
+export function ModalBody({ className, ...props }: ModalBodyProps) {
+  return <div className={cn('p-6 pt-0', className)} {...props} />
 }
 
-interface ModalBodyProps extends NextUIModalBodyProps {}
-export function ModalBody(props: ModalBodyProps) {
-  return <NextUIModalBody {...props} />
-}
-
-interface ModalContentProps extends NextUIModalContentProps {
-  children: React.ReactNode
-}
-export function ModalContent(props: ModalContentProps) {
+interface ModalContentProps
+  extends React.ComponentPropsWithoutRef<typeof Dialog.Content> {}
+export function ModalContent({
+  className,
+  children,
+  ...props
+}: ModalContentProps) {
   return (
-    <NextUIModalContent
-      {...props}
-      className={cn([
-        isMacOS || isWindows ? 'relative bg-transparent' : '',
-        props?.className,
-      ])}
-    >
-      {props?.children}
-      {isMacOS || isWindows ? <BackdropBlurContent /> : null}
-    </NextUIModalContent>
+    <Dialog.Portal>
+      <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+      <Dialog.Content
+        className={cn(
+          'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white dark:bg-zinc-900 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg md:w-full',
+          isMacOS || isWindows
+            ? 'bg-transparent/80 dark:bg-transparent/80'
+            : '',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {isMacOS || isWindows ? <BackdropBlurContent /> : null}
+      </Dialog.Content>
+    </Dialog.Portal>
   )
 }
 
-interface ModalFooterProps extends NextUIModalFooterProps {}
-export function ModalFooter(props: ModalFooterProps) {
-  return <NextUIModalFooter {...props} />
+interface ModalFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
+export function ModalFooter({ className, ...props }: ModalFooterProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-end p-6 pt-0 space-x-2',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 export default Modal

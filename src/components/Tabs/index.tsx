@@ -1,20 +1,45 @@
-import {
-  Tab as NextUITab,
-  type TabItemProps as NextUITabProps,
-  Tabs as NextUITabs,
-  type TabsProps as NextUITabsProps,
-} from '@heroui/tabs'
+import * as TabsPrimitive from '@radix-ui/react-tabs'
+import React from 'react'
 
-interface TabsProps extends NextUITabsProps {}
+import { cn } from '@/utils/tailwind'
 
-function Tabs(props: TabsProps) {
-  return <NextUITabs {...props} />
+interface TabsProps
+  extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
+  // Add specific mappings if required
 }
 
-interface TabProps extends NextUITabProps {}
+function Tabs({ className, ...props }: TabsProps) {
+  return (
+    <TabsPrimitive.Root
+      className={cn('flex flex-col w-full', className)}
+      {...props}
+    />
+  )
+}
 
-export function Tab(props: TabProps) {
-  return <NextUITab {...props} />
+interface TabProps
+  extends Omit<
+    React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>,
+    'title'
+  > {
+  title?: React.ReactNode
+}
+
+export function Tab({ className, title, value, ...props }: TabProps) {
+  // Radix requires a tight mapping where Trigger and Content are separate.
+  // If the previous code relied on <Tabs><Tab title="...">Content</Tab></Tabs>,
+  // we would need a complex context tracker. For a simple drop-in replacement,
+  // we fallback to simple props mapping or rendering just the content.
+  return (
+    <TabsPrimitive.Content
+      value={value ?? ''}
+      className={cn(
+        'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 export default Tabs

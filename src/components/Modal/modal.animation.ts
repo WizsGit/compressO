@@ -1,4 +1,4 @@
-import { Variants } from 'framer-motion'
+type Variants = any
 
 export const zoomIn: Variants = {
   enter: {

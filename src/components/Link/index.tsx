@@ -1,10 +1,20 @@
-import { Link as NextLink, LinkProps as NextLinkProps } from '@heroui/link'
+import React from 'react'
 
-interface LinkProps {}
+import { cn } from '@/utils/tailwind'
 
-function Link(props: LinkProps & NextLinkProps) {
-  const { ...nextLinkProps } = props
-  return <NextLink {...nextLinkProps} />
+interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  isExternal?: boolean
+}
+
+function Link({ className, isExternal, ...props }: LinkProps) {
+  return (
+    <a
+      className={cn('text-primary hover:underline', className)}
+      target={isExternal ? '_blank' : undefined}
+      rel={isExternal ? 'noopener noreferrer' : undefined}
+      {...props}
+    />
+  )
 }
 
 export default Link

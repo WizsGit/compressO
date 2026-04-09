@@ -1,4 +1,4 @@
-import { Variants } from 'framer-motion'
+type Variants = any
 
 export const zoomInTransition: Variants = {
   initial: { scale: 0.9, opacity: 0 },

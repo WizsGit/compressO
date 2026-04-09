@@ -1,8 +1,6 @@
-import { SelectItem } from '@heroui/select'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useSnapshot } from 'valtio'
 
-import Select from '@/components/Select'
+import Select, { SelectItem } from '@/components/Select'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
 import { videoProxy } from '../-state'
@@ -32,41 +30,40 @@ function VideoFPS() {
           FPS
         </p>
       </Switch>
-      <AnimatePresence mode="wait">
-        {shouldEnableCustomFPS ? (
-          <motion.div {...slideDownTransition}>
-            <Select
-              fullWidth
-              label="Frames Per Second:"
-              className="block flex-shrink-0 rounded-2xl !mt-8"
-              selectedKeys={[String(customFPS ?? fps)!]}
-              size="sm"
-              value={String(customFPS ?? fps)}
-              onChange={(evt) => {
-                const value = evt?.target?.value
-                if (value && !Number.isNaN(+value)) {
-                  videoProxy.state.config.customFPS = +value
-                }
-              }}
-              selectionMode="single"
-              isDisabled={isCompressing || isCompressionSuccessful}
-              classNames={{
-                label: '!text-gray-600 dark:!text-gray-400 text-xs',
-              }}
-            >
-              {FPS?.map((f) => (
-                <SelectItem
-                  key={String(f)}
-                  value={String(f)}
-                  className="flex justify-center items-center"
-                >
-                  {String(f)}
-                </SelectItem>
-              ))}
-            </Select>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+
+      {shouldEnableCustomFPS ? (
+        <div {...slideDownTransition}>
+          <Select
+            fullWidth
+            label="Frames Per Second:"
+            className="block flex-shrink-0 rounded-2xl !mt-8"
+            selectedKeys={[String(customFPS ?? fps)!]}
+            size="sm"
+            value={String(customFPS ?? fps)}
+            onChange={(evt) => {
+              const value = evt?.target?.value
+              if (value && !Number.isNaN(+value)) {
+                videoProxy.state.config.customFPS = +value
+              }
+            }}
+            selectionMode="single"
+            isDisabled={isCompressing || isCompressionSuccessful}
+            classNames={{
+              label: '!text-gray-600 dark:!text-gray-400 text-xs',
+            }}
+          >
+            {FPS?.map((f) => (
+              <SelectItem
+                key={String(f)}
+                value={String(f)}
+                className="flex justify-center items-center"
+              >
+                {String(f)}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      ) : null}
     </>
   )
 }

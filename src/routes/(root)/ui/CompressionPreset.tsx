@@ -1,9 +1,7 @@
-import { SelectItem } from '@heroui/select'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useSnapshot } from 'valtio'
 
 import Icon from '@/components/Icon'
-import Select from '@/components/Select'
+import Select, { SelectItem } from '@/components/Select'
 import Switch from '@/components/Switch'
 import Tooltip from '@/components/Tooltip'
 import { compressionPresets } from '@/types/compression'
@@ -39,59 +37,58 @@ function CompressionPreset() {
           </Switch>
         </div>
       </>
-      <AnimatePresence mode="wait">
-        {!shouldDisableCompression ? (
-          <motion.div {...slideDownTransition} className="mt-2">
-            <div className="mt-8">
-              <Select
-                fullWidth
-                label="Compression Preset:"
-                labelPlacement="outside"
-                className="block flex-shrink-0 rounded-2xl"
-                selectedKeys={[presetName]}
-                onChange={(evt) => {
-                  const value = evt?.target
-                    ?.value as keyof typeof compressionPresets
-                  if (value?.length > 0) {
-                    videoProxy.state.config.presetName = value
-                  }
-                }}
-                selectionMode="single"
-                isDisabled={
-                  shouldDisableCompression ||
-                  isCompressing ||
-                  isCompressionSuccessful
+
+      {!shouldDisableCompression ? (
+        <div {...slideDownTransition} className="mt-2">
+          <div className="mt-8">
+            <Select
+              fullWidth
+              label="Compression Preset:"
+              labelPlacement="outside"
+              className="block flex-shrink-0 rounded-2xl"
+              selectedKeys={[presetName]}
+              onChange={(evt) => {
+                const value = evt?.target
+                  ?.value as keyof typeof compressionPresets
+                if (value?.length > 0) {
+                  videoProxy.state.config.presetName = value
                 }
-                classNames={{
-                  label: '!text-gray-600 dark:!text-gray-400 text-xs',
-                }}
-              >
-                {presets?.map((preset) => (
-                  // Right now if we use SelectItem it breaks the code so opting for SelectItem from NextUI directly
-                  <SelectItem
-                    key={preset}
-                    value={preset}
-                    className="flex justify-center items-center"
-                    endContent={
-                      preset === compressionPresets.ironclad ? (
-                        <Tooltip content="Recommended" aria-label="Recommended">
-                          <Icon
-                            name="star"
-                            className="inline-block ml-1 text-yellow-500"
-                            size={15}
-                          />
-                        </Tooltip>
-                      ) : null
-                    }
-                  >
-                    {preset}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+              }}
+              selectionMode="single"
+              isDisabled={
+                shouldDisableCompression ||
+                isCompressing ||
+                isCompressionSuccessful
+              }
+              classNames={{
+                label: '!text-gray-600 dark:!text-gray-400 text-xs',
+              }}
+            >
+              {presets?.map((preset) => (
+                // Right now if we use SelectItem it breaks the code so opting for SelectItem from NextUI directly
+                <SelectItem
+                  key={preset}
+                  value={preset}
+                  className="flex justify-center items-center"
+                  endContent={
+                    preset === compressionPresets.ironclad ? (
+                      <Tooltip content="Recommended" aria-label="Recommended">
+                        <Icon
+                          name="star"
+                          className="inline-block ml-1 text-yellow-500"
+                          size={15}
+                        />
+                      </Tooltip>
+                    ) : null
+                  }
+                >
+                  {preset}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

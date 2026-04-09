@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import React, { useEffect, useMemo } from 'react'
 import { useSnapshot } from 'valtio'
 
@@ -121,33 +120,36 @@ function VideoDimensions() {
           Dimensions
         </p>
       </Switch>
-      <AnimatePresence mode="wait">
-        {shouldEnableCustomDimensions ? (
-          <motion.div
-            {...slideDownTransition}
-            className="mt-2 flex items-center space-x-2"
-          >
-            <NumberInput
-              label="Width"
-              className="max-w-[120px] xl:max-w-[150px]"
-              value={dimensions?.width}
-              onValueChange={(val) => handleChange(val, 'width')}
-              labelPlacement="outside"
-              classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
-              isDisabled={isCompressing || isCompressionSuccessful}
-            />
-            <NumberInput
-              label="Height"
-              className="max-w-[120px] xl:max-w-[150px]"
-              value={dimensions?.height}
-              onValueChange={(val) => handleChange(val, 'height')}
-              labelPlacement="outside"
-              classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
-              isDisabled={isCompressing || isCompressionSuccessful}
-            />
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+
+      {shouldEnableCustomDimensions ? (
+        <div
+          {...slideDownTransition}
+          className="mt-2 flex items-center space-x-2"
+        >
+          <NumberInput
+            label="Width"
+            className="max-w-[120px] xl:max-w-[150px]"
+            value={dimensions?.width}
+            onValueChange={(val) =>
+              val !== undefined && handleChange(val, 'width')
+            }
+            labelPlacement="outside"
+            classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
+            isDisabled={isCompressing || isCompressionSuccessful}
+          />
+          <NumberInput
+            label="Height"
+            className="max-w-[120px] xl:max-w-[150px]"
+            value={dimensions?.height}
+            onValueChange={(val) =>
+              val !== undefined && handleChange(val, 'height')
+            }
+            labelPlacement="outside"
+            classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
+            isDisabled={isCompressing || isCompressionSuccessful}
+          />
+        </div>
+      ) : null}
     </>
   )
 }

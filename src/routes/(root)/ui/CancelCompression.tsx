@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import { useSnapshot } from 'valtio'
 
@@ -8,7 +7,7 @@ import { videoProxy } from '../-state'
 
 function CancelCompression() {
   const {
-    state: { isCompressing, id: videoId },
+    state: { isCompressing },
   } = useSnapshot(videoProxy)
 
   const [confirmCancellation, setConfirmCancellation] = React.useState(false)
@@ -43,15 +42,13 @@ function CancelCompression() {
       isDisabled={isCancelling}
       fullWidth
     >
-      <AnimatePresence mode="wait">
-        <motion.div layout="preserve-aspect">
-          {confirmCancellation && !isCancelling
-            ? 'Confirm Cancel'
-            : isCancelling
-              ? 'Cancelling...'
-              : 'Cancel'}
-        </motion.div>
-      </AnimatePresence>
+      <div>
+        {confirmCancellation && !isCancelling
+          ? 'Confirm Cancel'
+          : isCancelling
+            ? 'Cancelling...'
+            : 'Cancel'}
+      </div>
     </Button>
   ) : null
 }

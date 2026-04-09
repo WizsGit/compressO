@@ -1,6 +1,14 @@
-import { UseDisclosureProps, useDisclosure } from '@heroui/modal'
-import React from 'react'
+import React, { useState } from 'react'
 import { snapshot, useSnapshot } from 'valtio'
+
+function useDisclosure() {
+  const [isOpen, setIsOpen] = useState(false)
+  const onOpen = () => setIsOpen(true)
+  const onClose = () => setIsOpen(false)
+  return { isOpen, onOpen, onClose }
+}
+
+type UseDisclosureProps = ReturnType<typeof useDisclosure>
 
 import Button from '@/components/Button'
 import Code from '@/components/Code'
@@ -14,7 +22,6 @@ function FileName() {
     state: {
       isCompressionSuccessful,
       compressedVideo,
-      thumbnailPathRaw,
       fileName,
       isFileSelected,
     },

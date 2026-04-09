@@ -1,33 +1,30 @@
-import {
-  Image as NextUIImage,
-  type ImageProps as NextUIImageProps,
-} from '@heroui/image'
 import React from 'react'
 
-interface ImageProps {
+interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string
   alt: string
+  fallbackSrc?: string
+  disableAnimation?: boolean
 }
-function Image(props: ImageProps & Exclude<NextUIImageProps, 'src'>) {
-  const { ...nextImageProps } = props
 
-  const [isFallbackImage, setIsFallbackImage] = React.useState(false)
+function Image(props: ImageProps) {
+  const { src, fallbackSrc, ...rest } = props
+  const [errorCount, setErrorCount] = React.useState(0)
+
+  // If both primary and fallback fail, or if src is empty and fallback fails, hide
+  if (errorCount >= 2 || (!src && errorCount >= 1)) {
+    return null
+  }
+
+  const currentSrc =
+    errorCount === 1 ? (fallbackSrc ?? '/default-blurred.jpg') : src
+
   return (
-    <NextUIImage
-      onLoadedData={() => {
-        setIsFallbackImage(false)
-      }}
-      onError={() => {
-        setIsFallbackImage(true)
-      }}
-      {...nextImageProps}
-      {...(isFallbackImage
-        ? {
-            src:
-              nextImageProps?.fallbackSrc?.toString() ?? '/default-blurred.jpg',
-            fallbackSrc: null,
-          }
-        : {})}
+    <img
+      src={currentSrc || (fallbackSrc ?? '/default-blurred.jpg')}
+      onLoad={() => setErrorCount(0)}
+      onError={() => setErrorCount((prev) => prev + 1)}
+      {...rest}
     />
   )
 }

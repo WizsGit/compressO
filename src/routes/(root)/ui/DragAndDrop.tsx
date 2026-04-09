@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import ReactDOM from 'react-dom'
 
@@ -64,28 +63,26 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
   return (
     <>
       {ReactDOM.createPortal(
-        <AnimatePresence mode="wait">
-          {dragAndDropState === 'dragging' ? (
+        dragAndDropState === 'dragging' ? (
+          <div
+            ref={dragAndDropContainerRef}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="fixed top-0 right-0 bottom-0 left-0 w-screen h-screen bg-zinc-200 dark:bg-zinc-900 flex justify-center items-center flex-col z-[2]"
+          >
             <div
-              ref={dragAndDropContainerRef}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              className="fixed top-0 right-0 bottom-0 left-0 w-screen h-screen bg-zinc-200 dark:bg-zinc-900 flex justify-center items-center flex-col z-[2]"
+              className="flex justify-center items-center flex-col py-16 px-20 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-3xl"
+              {...zoomInTransition}
             >
-              <motion.div
-                className="flex justify-center items-center flex-col py-16 px-20 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-3xl"
-                {...zoomInTransition}
-              >
-                <Icon name="dragAndDrop" className="text-primary" size={50} />
-                <p className="my-2 text-gray-600 dark:text-gray-400 italic text-sm">
-                  Drop anywhere...
-                </p>
-              </motion.div>
+              <Icon name="dragAndDrop" className="text-primary" size={50} />
+              <p className="my-2 text-gray-600 dark:text-gray-400 italic text-sm">
+                Drop anywhere...
+              </p>
             </div>
-          ) : null}
-        </AnimatePresence>,
+          </div>
+        ) : null,
         document.getElementById('portal') as HTMLDivElement,
       )}
     </>

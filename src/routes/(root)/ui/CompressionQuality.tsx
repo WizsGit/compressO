@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
@@ -71,51 +70,50 @@ function CompressionQuality() {
           Quality
         </p>
       </Switch>
-      <AnimatePresence mode="wait">
-        {shouldEnableQuality ? (
-          <motion.div {...slideDownTransition}>
-            <Slider
-              label
-              aria-label="Quality"
-              size="sm"
-              marks={[
-                {
-                  value: 0,
-                  label: 'Low',
-                },
-                {
-                  value: 50,
-                  label: 'Medium',
-                },
-                {
-                  value: 99,
-                  label: 'High',
-                },
-              ]}
-              className="mb-8"
-              classNames={{ mark: 'text-xs' }}
-              getValue={(value) => {
-                const val = Array.isArray(value) ? value?.[0] : +value
-                return val < 50
-                  ? 'Low'
-                  : val >= 50 && val < 100
-                    ? 'Medium'
-                    : 'High'
-              }}
-              renderValue={(props) => (
-                <p className="text-primary text-sm font-bold">
-                  {props?.children}
-                </p>
-              )}
-              value={quality}
-              onChange={handleQualityChange}
-              isDisabled={
-                isCompressing || isCompressionSuccessful || !shouldEnableQuality
-              }
-            />
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+
+      {shouldEnableQuality ? (
+        <div {...slideDownTransition}>
+          <Slider
+            label
+            aria-label="Quality"
+            size="sm"
+            marks={[
+              {
+                value: 0,
+                label: 'Low',
+              },
+              {
+                value: 50,
+                label: 'Medium',
+              },
+              {
+                value: 99,
+                label: 'High',
+              },
+            ]}
+            className="mb-8"
+            classNames={{ mark: 'text-xs' }}
+            getValue={(value: any) => {
+              const val = Array.isArray(value) ? value?.[0] : +value
+              return val < 50
+                ? 'Low'
+                : val >= 50 && val < 100
+                  ? 'Medium'
+                  : 'High'
+            }}
+            renderValue={(props: any) => (
+              <p className="text-primary text-sm font-bold">
+                {props?.children}
+              </p>
+            )}
+            value={[quality]}
+            onChange={handleQualityChange}
+            isDisabled={
+              isCompressing || isCompressionSuccessful || !shouldEnableQuality
+            }
+          />
+        </div>
+      ) : null}
     </>
   )
 }
