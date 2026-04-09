@@ -13,7 +13,7 @@
     "vite:build": "vite build",
     "vite:preview": "vite preview",
     "vite:start": "vite",
-    "build": "npm run vite:build",
+    "build": "vite build",
     "start": "node server/index.js",
     "postinstall": "husky install",
     "lint-staged": "lint-staged",
